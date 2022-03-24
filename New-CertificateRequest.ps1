@@ -64,15 +64,19 @@ _continue_ = "EMail=$upn&"
     else {
         # get the encoded request
         $req = Get-Content "$env:temp\request.txt"
-
+        
+        # clean up temp files
+        Remove-Item "$env:temp\request.ini" -Force:$true
+        Remove-Item "$env:temp\request.txt" -Force:$true
+        
         # copy encoded request to clipboard
         Set-Clipboard -Value $req
 
-        Write-Verbose 'Your request has been generated and copied to the clipboard.' -Verbose
+        # dump encoded request to console
         $req
 
-        Remove-Item "$env:temp\request.ini" -Force:$true
-        Remove-Item "$env:temp\request.txt" -Force:$true
+        # notify user
+        Write-Verbose 'Your request has been generated and copied to the clipboard.' -Verbose
     }
 }
 
