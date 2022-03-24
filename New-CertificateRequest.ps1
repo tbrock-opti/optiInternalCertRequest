@@ -1,5 +1,7 @@
-# prompt user for Okta username
-$upn = Read-Host 'Enter your Okta username. For example: firstName.lastName@optimizely.com'
+param (
+    # option to provide $upn at command line
+    [string]$upn
+)
 
 # base template for cert request
 $template = @"
@@ -43,6 +45,9 @@ Please type "OPTIMIZELY" to confirm you understand:
 if ($(Read-Host -Prompt $prompt) -ne 'OPTIMIZELY') {
     Break
 }
+
+# prompt user for Okta username
+$upn = Read-Host 'Enter your Okta username. For example: firstName.lastName@optimizely.com'
 
 # run certreq to generate the base64 encoded request
 & certreq.exe -new "$env:temp\request.ini" "$env:temp\request.txt"
