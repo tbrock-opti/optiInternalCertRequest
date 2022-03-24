@@ -3,8 +3,32 @@ param (
     [string]$upn
 )
 
-# base template for cert request
-$template = @"
+# warning message 
+$prompt = @"
+
+
+*************************************************************************
+* THIS SCRIPT IS INTENDED FOR USE ON OPTIMIZELY OWNED COMPUTERS ONLY.   *
+* EXECUTING THIS SCRIPT ON A NON-OPTIMIZELY OWNED DEVICE IS A VIOLATION *
+* OF THE OPTIMIZELY CUSTOMER SECURITY POLICY.                           *
+* ***********************************************************************
+
+Please type "OPTIMIZELY" to confirm you understand: 
+"@
+
+# prompt to confirm understanding of warning message
+if ($(Read-Host -Prompt $prompt) -ne 'OPTIMIZELY') {
+    Break
+}
+else {
+
+    # prompt user for Okta username
+    if (-not $upn) {
+        $upn = Read-Host 'Enter your Okta username. For example: firstName.lastName@optimizely.com'
+    }
+
+    # base template for cert request
+    $template = @"
 [Version]
 Signature = $Windows NT$
 
@@ -27,36 +51,30 @@ OID = 1.3.6.1.5.5.7.3.2
 _continue_ = "EMail=$upn&"
 "@
 
-# save the updated request template
-$template | Out-File "$env:temp\request.ini"
+    # save the updated request template
+    $template | Out-File "$env:temp\request.ini"
+    # run certreq to generate the base64 encoded request
+    & certreq.exe -new "$env:temp\request.ini" "$env:temp\request.txt"
 
-$prompt = @"
+    # check for error generating certificate
+    if (-not $?) {
+        Write-Verbose 'Error generating cert, please double check your input.' -Verbose
+        Break
+    }
+    else {
+        # get the encoded request
+        $req = Get-Content "$env:temp\request.txt"
 
+        # copy encoded request to clipboard
+        Set-Clipboard -Value $req
 
-*************************************************************************
-* THIS SCRIPT IS INTENDED FOR USE ON OPTIMIZELY OWNED COMPUTERS ONLY.   *
-* EXECUTING THIS SCRIPT ON A NON-OPTIMIZELY OWNED DEVICE IS A VIOLATION *
-* OF THE OPTIMIZELY CUSTOMER SECURITY POLICY.                           *
-* ***********************************************************************
+        Write-Verbose 'Your request has been generated and copied to the clipboard.' -Verbose
+        $req
 
-Please type "OPTIMIZELY" to confirm you understand: 
-"@
-
-if ($(Read-Host -Prompt $prompt) -ne 'OPTIMIZELY') {
-    Break
+        Remove-Item "$env:temp\request.ini" -Force:$true
+        Remove-Item "$env:temp\request.txt" -Force:$true
+    }
 }
-
-# prompt user for Okta username
-$upn = Read-Host 'Enter your Okta username. For example: firstName.lastName@optimizely.com'
-
-# run certreq to generate the base64 encoded request
-& certreq.exe -new "$env:temp\request.ini" "$env:temp\request.txt"
-
-# dump encoded request to the console
-Get-Content "$env:temp\request.txt"
-
-Remove-Item "$env:temp\request.ini" -Force:$true
-Remove-Item "$env:temp\request.txt" -Force:$true
 
 # SIG # Begin signature block
 # MIIJcQYJKoZIhvcNAQcCoIIJYjCCCV4CAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
